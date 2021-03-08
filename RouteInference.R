@@ -19,13 +19,13 @@ library(TwGeos)
 library(zoo)
 library(geodist)
 setupGeolocation()
-# Set up functions needed for Inference (Priors)
+# Se up functions needed for Inference (Priors)
 
-
+##' Function to generate a land mask in raster form. This will be used to push bird positions on land rather than on sea.
+##' @param xlim,ylim parameters which define map extent
+##' @return raster indicating probabilities. (sea very low land 1)
 earthseaMask <- function(xlim, ylim, n = 2, pacific=FALSE, index) {
-  ##' Function to generate a land mask in raster form. This will be used to push bird positions on land rather than on sea.
-  ##' @param xlim,ylim parameters which define map extent
-  ##' @return raster indicating probabilities. (sea very low land 1)
+  
   if (pacific) { wrld_simpl <- nowrapRecenter(wrld_simpl, avoidGEOS = TRUE)}
   
   # create empty raster with desired resolution
@@ -50,14 +50,13 @@ earthseaMask <- function(xlim, ylim, n = 2, pacific=FALSE, index) {
   function(p) mask[cbind(.bincode(p[,2],ybin),.bincode(p[,1],xbin), index)]
 }
 
-
+##' Function to read and plot sensor data (light measurements)
+##' @param date dates on which sensor was operating
+##' @return plot of light data
 sensorIMG_2 <- function (date, sensor_data, tz = "UTC", plotx = TRUE, ploty = TRUE, 
                          labelx = TRUE, labely = TRUE, offset = 0, dt = NA, xlab = "Hour", 
                          ylab = "Date", cex = 2, col = c("black", viridis::viridis(90)), 
                          ...) {
-  ##' Function to read and plot sensor data (light measurements)
-  ##' @param date dates on which sensor was operating
-  ##' @return plot of light data
   dts <- c(5, 10, 15, 20, 30, 60, 90, 120, 180, 240, 300, 360, 
            400, 480, 540, 600, 720, 900, 960, 1200)
   if (is.na(dt)) {
@@ -155,10 +154,6 @@ get_alt<- function(PAM_data){
 
 #set up rounding function to be called in alt finder
 mround <- function(x, base) {
-  #' function to round a nuber to a base
-  #' @param x nuber to be rounded
-  #' @param base base number wo which the input number x shall be rounded
-  #' @return number rounded to the base indicated
   base * round(x/base)
 }
 
@@ -227,7 +222,7 @@ directions <- function(x, z) {
                                             360) * (pi/180)))
 }
 
-get_wind_pos<- function(tm = 1463011200){
+get_wind_pos<- function(tm = 1492171200){
   #'get_wind_pos queries the unique positions of the windmeasurements. this query returns all positions at one moment in the migration period
   #'@param tm one time stamp along the migration route 
   #'@return list of wind positions
@@ -333,8 +328,9 @@ time_check<- function(tm, wind_data, th_listconcat){
   if(length(anyDuplicated(tm)) == 1){
     duplicateIDX<- which(duplicated(tm) == T)
     for(i in duplicateIDX) { 
-      newrow<- wind_data[(((i*th_listconcat)-th_listconcat)+1):(i*th_listconcat),]
-      row<-(((i*th_listconcat)-th_listconcat)+1)
+      idx<-which(wind_data$tms == tm[i-1])[1]
+      newrow<- wind_data[idx:(idx+(th_listconcat-1)),]
+      row<-(((i*th_listconcat)-th_listconcat))
       wind_data[seq(row+length(newrow[,1]), nrow(wind_data)+length(newrow[,1])),]<- wind_data[seq(row, nrow(wind_data)),]
       wind_data[seq(row, (row+length(newrow[,1])-1)),]<- newrow
     }
@@ -343,9 +339,7 @@ time_check<- function(tm, wind_data, th_listconcat){
 }
 
 get_geoindex<- function(th_listconcat){
-  #' Function wich creates a index for each coordinate pair at a respective time stamp along the migration route.
-  #' @param  th_listconcat threshold value indicating the number of rows of the coorinate pairs
-  #' @return index for each position for faster wind data retrieval
+  
   latcol<- th_listconcat[2]
   loncol<- th_listconcat[3]
   th_listconcat<- th_listconcat[1]
@@ -398,10 +392,10 @@ get_wind <- function(z, wind_data, wind_positions, k=9) {
   
   wind_vector <- lapply(position_idx, FUN= function(x){
     
-    nn_positions <- k_nn_data[[x]][,1]
+    nn_positions <- k_nn_data[[28]][,1]
     
     wind_x <- lapply(nn_positions, FUN= function(p){
-      wind_data[geoIndex[[p]][x],2]})
+      wind_data[geoIndex[[4990]][28],2]})
     
     wind_y <- lapply(nn_positions,FUN=function(p){
       wind_data[geoIndex[[p]][x],3]})
@@ -475,9 +469,6 @@ wind_model <- function(x, z, dt, sigma_bird_speed=3.5) {
 }
 
 db_setup<- function(){
-  #' Initiate the parameters needed to connect to the data base
-  #' @param none
-  #' @return connection to the data base
   # Parameter for Database connection
   user<- "mwerfeli"
   password<- "M*4XgiFWLU4E+62r9GtM"
@@ -496,8 +487,8 @@ db_setup<- function(){
 con<- db_setup()
 
 #Where is data stored
-folderName<- "16BY_20170612"
-birdName<- "16BY"
+folderName<- "16BZ_20170809"
+birdName<- "16BZ"
 Data <- paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/data/",folderName)
 # list all light files
 ID.list<-list.files(paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/data/", folderName),pattern=".glf",recursive = T) # Change to gle or glf - the one you use for analyses
@@ -521,19 +512,11 @@ start = as.POSIXct("2015-07-15","%Y-%m-%d", tz="UTC")
 end = as.POSIXct("2016-06-30","%Y-%m-%d", tz="UTC") 
 
 #Parameter for result storage
-Route_name<- 'NW'
+Route_name<- 'WM'
 Storage_path_route<-paste0('P:/home/Documents/MSC_Thesis/Route_Inferrence/Results/',birdName,'/VoWa/Route_', Route_name,'.png')
 LatAndLonPlot_Path<- paste0('P:/home/Documents/MSC_Thesis/Route_Inferrence/Results/',birdName,'/VoWa/LatLon_', Route_name,'.png')
 Summaryfile_Path<- paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/Results/",birdName,"/VoWa/",birdName,"_sumary_", Route_name,".csv")
 
-
-WindSpeed_Path<- paste0('P:/home/Documents/MSC_Thesis/Route_Inferrence/Results/',birdName,'/VoWa/WindSpeed_', Route_name,'.png')
-WindSupport_Path<- paste0('P:/home/Documents/MSC_Thesis/Route_Inferrence/Results/',birdName,'/VoWa/WindSupport_', Route_name,'.png')
-
-
-WindData_Path<- paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/Results/",birdName,"/VoWa/",birdName, "_",Route_name,".csv")
-WindSpeedCSV_Path<- paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/Results/",birdName,"/VoWa/",birdName, "_",Route_name,"_WindSpeeds.csv") 
-WindSuportCSV_Path<- paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/Results/",birdName,"/VoWa/",birdName, "_",Route_name,"_WindSuports.csv")
 
 ################ Data preparation ###################
 
@@ -577,7 +560,7 @@ lightImage( tagdata = raw,
 tsimageDeploymentLines(twl$Twilight, lon.calib, lat.calib, offset, lwd = 2, col = "orange")
 
 
-tm.calib <- as.POSIXct(c("2016-07-16 00:00", "2016-08-18 00:00", "2017-03-18 00:00", "2017-04-04 00:00"), tz = "UTC",format="%Y-%m-%d %H:%M") # Selecting calibration period(s) 
+tm.calib <- as.POSIXct(c("2016-07-16 00:00", "2016-07-30 00:00", "2017-04-01 00:00", "2017-04-25 00:00"), tz = "UTC",format="%Y-%m-%d %H:%M") # Selecting calibration period(s) 
 abline(v = tm.calib, lwd = 2, lty = 2, col = "red") # chech if them make sense on the light graph
 
 d_calib <- subset(twl, Twilight>=tm.calib[1] & Twilight<=tm.calib[2] | Twilight>=tm.calib[3] & Twilight<=tm.calib[4])
@@ -615,7 +598,7 @@ library(dplyr)
 ID.list = list.files(paste0("~/MSC_Thesis/R_stuff/Msc_Thesis/data/",folderName,"/"),include.dirs=T)
 ID.list
 #Set idx at position where GLF file is found in the id list --> you want to read the glf file
-ID = ID.list[6]
+ID = ID.list[5]
 ID
 
 pathname = paste0("~/MSC_Thesis/R_stuff/Msc_Thesis/data/",folderName,"/")
@@ -642,7 +625,7 @@ tz<- "UTC"
 ID.list2 = list.files(Activity_path,pattern="_act",include.dirs=T) # this is the PAMLr output file of flight classification
 ID.list2
 #Select the corect twl file
-ID2 = ID.list2[10]
+ID2 = ID.list2[11]
 ID2
 
 timetable <- read.csv(paste0(Activity_path,ID2))
@@ -1110,238 +1093,65 @@ sm<- sm_updater(x,z,track)
 
 write.csv(sm, Summaryfile_Path, row.names = F)
 
-wind_model <- function(x,z, bird_vec_angle, dt) {
-  #' Function which computes the probability of each position along the migration track. THe probability describes, how likely a bird flys to this point whilst migrating
-  #' from the breeding site to the wintering site and back, given the data recorded while bird migration.
-  #' @param x chain of x positions along the track. These points are positions estimated by light location
-  #' @param z chain of z positions intermediate between the x positions computed applying the trackMidPts function in SGAT
-  #' @param bird_vec_angle list of direction angles in radian, indicating  the bird flight direction
-  #' @param dt flt time given by bird activity which was categorized as migration flight
-  #' @return prob_list list of  probability values indicating how probable a point is flown to given the data available
-  #' 
-  #Compute speed necessary to fly between the proposed points in the given flt time
-  spd <- pmax.int(trackDist2(x, z), 1e-06)/dt
+######## Generate csv with wind speed in u and v direction at each latent point zi along the mean migration route ######
+
+
+x<- cbind(sm$Lat.mean,sm$Lon.mean)
+z<- trackMidpts(x)
+
+
+
+#Start wind data readout here:
+birdName<- "16BZ"
+Route_name<- "NW"
+
+
+WindData_Path<- paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/Results/",birdName,"/VoWa/",birdName, "_",Route_name,"_windDTA.csv")
+
+
+
+#estimate wind support and compensation
+wind_data_extractor<- function(x,z,dt){
+  #get the wind speeds at the required positions
+  wind_vectors<- get_wind(z, wind_data, wind_positions)
   
-  #create subset for distance matrix
-  #all indexes of the wind positions + and - 3 degree around the bird position are returned. These positions are then used to compute
-  #wind speed and direction 
-  #define search radius around bird position in degrees
-  sRad<- 5000
-  pos_subset<- lapply(position_idx, FUN = function(x){which(wind_positions_DB[,1] <= z[x,] + sRad & wind_positions_DB[,2] <= z[x,] + sRad & wind_positions_DB[,1] >= z[x,]-sRad & wind_positions_DB[,2] >= z[x,]-sRad)})
+  spd <- pmax.int(trackDist2(x, z), 1e-06)/dt$duration
+  spd <- ifelse(is.nan(spd),0, spd)
+  bird_vec_angle<- directions(x,z)
+
+  #angle between bird heading and wind vector
+  theta <- ifelse(bird_vec_angle > wind_vectors[["wind_directions"]], 
+                  bird_vec_angle - wind_vectors[["wind_directions"]], 
+                  wind_vectors[["wind_directions"]] - bird_vec_angle)
   
-  # Compute distance from each Point in x to each wind measurement position  found within +/- 3 degrees in wind_position_DB data table.
-  dist <- lapply(position_idx, FUN=function(x){
-    #start points of distance matrix
-    from<-wind_positions_DB[pos_subset[[x]],]
-    to<-z[x,]
-    suppressMessages(geodist(from,to,measure='cheap'))
-  })
+  #wind support
+  wind_support<- sin(theta) * wind_vectors[["wind_speeds"]]
   
-  k_nn_data <- lapply(position_idx,function(x){
-    k <- 9  
-    # Find the value of the k th smallest distance 
-    # (partial = k implies  that the sorting stops once the kth nearest neighbor has been found)
-    k_th <- sort(dist[[x]], partial = k)[k]
-    # Find the indices of all elements smaller than k_nn (not ordered!!)
-    k_nn_idx <- which(dist[[x]] <= k_th)
-    #Filter the nine closest distances
-    k_nn_dist<- dist[[x]][k_nn_idx]
-    return_data<- cbind(k_nn_idx, k_nn_dist)
-    return(return_data)
-  } )
+  #compensation
+  compensation<- sqrt(wind_vectors[["wind_speeds"]]^2 - wind_support^2)
   
-  #filter the wind speeds at the correct height at each position in x and y direction
-  wind_speeed_data<-lapply(position_idx,FUN= function(x){
-    nn_positions<- pos_subset[[x]][k_nn_data[[x]][,1]]
-    wind_speed_x<- lapply(nn_positions,FUN=function(p){test_wind[geoIndex[[p]][x],2]})
-    wind_speed_y<- lapply(nn_positions,FUN=function(p){test_wind[geoIndex[[p]][x],3]})
-    #bind the x and y column to one data frame for simple return and preocessing
-    wind_data<-cbind(unlist(wind_speed_x), unlist(wind_speed_y))
-    return(wind_data)
-  })
+  airSpeed<- sqrt(wind_vectors[["wind_speeds"]]^2 + spd^2 -(2*wind_vectors[["wind_speeds"]]*spd*cos(theta)))
   
-  #Weights computed for weighted mean. The closest wind measurement gets the highest weight, while the furthest wind measurement gets the smalest weight
-  dist_min <- lapply(position_idx, FUN=function(x){
-    min(k_nn_data[[x]][,2])})
+  wind_data<- cbind(wind_vectors[["wind_speeds"]], wind_support, compensation, airSpeed)
   
-  dist_max <- lapply(position_idx, FUN=function(x){
-    max(k_nn_data[[x]][,2])})
-  
-  weights<- lapply(position_idx, FUN=function(x){(k_nn_data[[x]][,2]- dist_max[[x]]) / (dist_min[[x]] - dist_max[[x]])})
-  
-  
-  weig_wind_speed<- lapply(position_idx,FUN=function(x){
-    #compute the weighted speeds on each position along the chain
-    weig_speeds<- wind_speeed_data[[x]] * weights[[x]]
-    return(weig_speeds)
-    
-  })
-  
-  #sum the weights at each position along the track
-  sum_weights<- lapply(weights,sum)
-  
-  #Compute the weighted mean of each wind in x and y direction
-  wind_speeds_xy<- lapply(position_idx,FUN=function(x){
-    #sum the weighted speeds and devide by the sum of weights -> weighted mean                  
-    swspeeds<-apply(weig_wind_speed[[x]], 2,sum) / sum_weights[[x]]})
-  
-  #compute wind speed and wind direction at each position
-  wind_speeds<- unlist(lapply(position_idx,FUN=function(x){sqrt(wind_speeds_xy[[x]][[1]]^2 + wind_speeds_xy[[x]][[2]]^2)}),recursive = T, use.names = T)
+  #write data to a file
+  windspeedfile<- write.csv(wind_data, WindData_Path, row.names = F)
   
 }
 
-wind_speeds<- wind_model(x0,z0,bird_vec_angle,dt$duration)
-hist(wind_speeds, main="Histogram of wind speeds on the migrationroute", xlab="Wind speeds [km/h]")
-png(file=WindSpeed_Path)
-barplot(wind_speeds,names.arg = c(1:length(wind_speeds)),
-        main="Wind speeds encountered en route",
-        xlab="Position index",
-        ylab="Winds speed [m/s]")
-dev.off()
-mw<- mean(wind_speeds)
-sdw<- sd(wind_speeds)
-minw<-min(wind_speeds)
-maxw<-max( wind_speeds)
 
-wind_data<- cbind(mw, sdw, minw, maxw)
+wind<-wind_data_extractor(x,z,dt)
 
-wind_speed_data<- cbind(c(1:length(wind_speeds)), wind_speeds)
-windspeedfile<- write.csv(wind_speed_data, WindSpeedCSV_Path, row.names = F)
 
-wind_model <- function(x,z, bird_vec_angle, dt) {
-  #' Function which computes the probability of each position along the migration track. THe probability describes, how likely a bird flys to this point whilst migrating
-  #' from the breeding site to the wintering site and back, given the data recorded while bird migration.
-  #' @param x chain of x positions along the track. These points are positions estimated by light location
-  #' @param z chain of z positions intermediate between the x positions computed applying the trackMidPts function in SGAT
-  #' @param bird_vec_angle list of direction angles in radian, indicating  the bird flight direction
-  #' @param dt flt time given by bird activity which was categorized as migration flight
-  #' @return prob_list list of  probability values indicating how probable a point is flown to given the data available
-  #' 
-  #Compute speed necessary to fly between the proposed points in the given flt time
-  spd <- pmax.int(trackDist2(x, z), 1e-06)/dt
-  
-  #create subset for distance matrix
-  #all indexes of the wind positions + and - 3 degree around the bird position are returned. These positions are then used to compute
-  #wind speed and direction 
-  #define search radius around bird position in degrees
-  sRad<- 25
-  pos_subset<- lapply(position_idx, FUN = function(x){which(wind_positions_DB[,1] <= z[x,] + sRad & wind_positions_DB[,2] <= z[x,] + sRad & wind_positions_DB[,1] >= z[x,]-sRad & wind_positions_DB[,2] >= z[x,]-sRad)})
-  
-  # Compute distance from each Point in x to each wind measurement position  found within +/- 3 degrees in wind_position_DB data table.
-  dist <- lapply(position_idx, FUN=function(x){
-    #start points of distance matrix
-    from<-wind_positions_DB[pos_subset[[x]],]
-    to<-z[x,]
-    suppressMessages(geodist(from,to,measure='cheap'))
-  })
-  
-  k_nn_data <- lapply(position_idx,function(x){
-    k <- 9  
-    # Find the value of the k th smallest distance 
-    # (partial = k implies  that the sorting stops once the kth nearest neighbor has been found)
-    k_th <- sort(dist[[x]], partial = k)[k]
-    # Find the indices of all elements smaller than k_nn (not ordered!!)
-    k_nn_idx <- which(dist[[x]] <= k_th)
-    #Filter the nine closest distances
-    k_nn_dist<- dist[[x]][k_nn_idx]
-    return_data<- cbind(k_nn_idx, k_nn_dist)
-    return(return_data)
-  } )
-  
-  #filter the wind speeds at the correct height at each position in x and y direction
-  wind_speeed_data<-lapply(position_idx,FUN= function(x){
-    nn_positions<- pos_subset[[x]][k_nn_data[[x]][,1]]
-    wind_speed_x<- lapply(nn_positions,FUN=function(p){test_wind[geoIndex[[p]][x],2]})
-    wind_speed_y<- lapply(nn_positions,FUN=function(p){test_wind[geoIndex[[p]][x],3]})
-    #bind the x and y column to one data frame for simple return and preocessing
-    wind_data<-cbind(unlist(wind_speed_x), unlist(wind_speed_y))
-    return(wind_data)
-  })
-  
-  #Weights computed for weighted mean. The closest wind measurement gets the highest weight, while the furthest wind measurement gets the smalest weight
-  dist_min <- lapply(position_idx, FUN=function(x){
-    min(k_nn_data[[x]][,2])})
-  
-  dist_max <- lapply(position_idx, FUN=function(x){
-    max(k_nn_data[[x]][,2])})
-  
-  weights<- lapply(position_idx, FUN=function(x){(k_nn_data[[x]][,2]- dist_max[[x]]) / (dist_min[[x]] - dist_max[[x]])})
-  
-  
-  weig_wind_speed<- lapply(position_idx,FUN=function(x){
-    #compute the weighted speeds on each position along the chain
-    weig_speeds<- wind_speeed_data[[x]] * weights[[x]]
-    return(weig_speeds)
-    
-  })
-  
-  #sum the weights at each position along the track
-  sum_weights<- lapply(weights,sum)
-  
-  #Compute the weighted mean of each wind in x and y direction
-  wind_speeds_xy<- lapply(position_idx,FUN=function(x){
-    #sum the weighted speeds and devide by the sum of weights -> weighted mean                  
-    swspeeds<-apply(weig_wind_speed[[x]], 2,sum) / sum_weights[[x]]})
-  
-  #parameter to transform m/s to km/h
-  ms2kmh<- 3.6
-  
-  #compute wind speed and wind direction at each position
-  wind_speeds<- unlist(lapply(position_idx,FUN=function(x){sqrt(wind_speeds_xy[[x]][[1]]^2 + wind_speeds_xy[[x]][[2]]^2)}),recursive = T, use.names = T)
-  
-  wind_directions<- unlist(lapply(position_idx,FUN = function(x){atan2(wind_speeds_xy[[x]][[2]],wind_speeds_xy[[x]][[1]])}), recursive = T, use.names = T)
-  
-  
-  ##' compute the wind speed sigma
-  ##' sigma is used to compute the alpha and beta parameter to characterize the gamma distribution --> log probability
-  
-  #define percentage of data at mu and at two sigma from mu
-  nmu<-50
-  twosgm<- 30
-  #Parameter deciding if a distribution is onesided or two sided
-  onesided<- 2
-  sigma_wind_spd <- (wind_speeds - ((wind_speeds/nmu) * twosgm)/onesided)
-  
-  #compute the angel between the bird flying vector and the wind direction
-  alpha <- ifelse(bird_vec_angle > wind_directions, 
-                  bird_vec_angle - wind_directions, wind_directions - 
-                    bird_vec_angle)
-  alpha <- ifelse(alpha <= (pi/2), alpha, ifelse(alpha<=pi, pi - alpha, alpha-pi))
-  
-  #retrieve the direction of the vector describing the wind compenstaion a bird has to fly in order to fly to its desired destination
-  dir_comp <- ifelse(bird_vec_angle > wind_directions, bird_vec_angle - (pi/2), bird_vec_angle - ((3/2) * pi))
-  
-  dir_comp <- ifelse(dir_comp > 0, dir_comp, dir_comp + 2 * pi)
-  
-  #compute magnitude of wind compensation vector
-  mag_comp <- cos(pi - (pi/2) - alpha[3]) * wind_speeds
-  
-  #After computing the compensation vector, the wind add parallel to the bird flying vector is computed
-  wind_add <- ifelse(alpha<=pi, sqrt(wind_speeds^2 - mag_comp^2),-sqrt(wind_speeds^2 - mag_comp^2))
-  
-  #Sum of wind partition parallel to bird flying vector and bird speed
-}
 
-wind_add<-wind_model(x0,z0,bird_vec_angle,dt$duration)
 
-hist(wind_add, main="Histogram of wind partition parallel to bird flight vector", xlab="Speed [km/h]")
-png(file=WindSupport_Path)
-barplot(wind_add,names.arg = c(1:length(wind_add)),
-        main="Wind speeds parallel to flight vector encountered en route",
-        xlab="Position index",
-        ylab="Winds speed [m/s]")
-dev.off()
-mwa<- mean(wind_add)
-sdwa<- sd(wind_add)
-minwa<- min(wind_add)
-maxwa<- max(wind_add)
 
-wind_suport_data<- cbind(c(1:length(wind_speeds)), wind_add)
-windsuportfile<- write.csv(wind_suport_data, WindSuportCSV_Path, row.names = F)
 
-wind_add_data<- cbind(mwa, sdwa, minwa, maxwa)
-wind_data_csv<-rbind(wind_data, wind_add_data)
-write.csv(wind_data_csv, WindData_Path, row.names = F)
+
+
+
+
+
 
 
 

@@ -637,7 +637,8 @@ read_wind_dta<- function(ID_list){
     wspeed<- df$X
     wsup<- df$wind_support
     wcomp<- df$compensation
-    wdta<- cbind(wspeed, wsup, wcomp)
+    aspd<- df$airSpeed
+    wdta<- cbind(wspeed, wsup, wcomp,aspd)
   })
   
   wind_dta_nw<- lapply(ID_list, FUN=function(x){
@@ -645,7 +646,8 @@ read_wind_dta<- function(ID_list){
     wspeed<- df$X
     wsup<- df$wind_support
     wcomp<- df$compensation
-    wdta<- cbind(wspeed, wsup, wcomp)
+    aspd<- df$airSpeed
+    wdta<- cbind(wspeed, wsup, wcomp,aspd)
   })
   return(c(wind_dta_wm, wind_dta_nw))
 }
@@ -699,6 +701,24 @@ get_wind_com<- function(idx, WI_dta){
 
   return(c(com_wm, com_nw))
 }
+
+get_air_spd<- function(idx, WI_dta){
+  #' getter fuction for wind speed as well for WM as for NW wind data
+  #' @param idx parameter to indicate the number of routes to be analyzed. It also indicates the index position of the last 
+  #' element to be extracted
+  #' @param WI_dta data extracted form the wind summary files
+  #' @return wind speeds along the migration route
+  aspd_wm<- lapply(c(1:idx), FUN=function(x){
+    dta<- WI_dta[[x]][,4]
+  })
+  
+  aspd_nw<- lapply(c((idx+1):(2*idx)), FUN=function(x){
+    dta<- WI_dta[[x]][,4]
+  })
+  
+  return(c(aspd_wm,aspd_nw))
+}
+
 
 wind_analyser<- function(ID_list,writeVar = T,results_path){
   #' function which returns usefull comparison metrics of the different wind components found along each migration route
@@ -770,11 +790,31 @@ wind_analyser<- function(ID_list,writeVar = T,results_path){
     wcom_dta<- cbind(wcom_min, wcom_max, wcom_mean, wcom_median)  
   })
   
+  air_speed<- get_air_spd(idx, WI_dta)
+  aspd_wm<- air_speed[1:idx]
+  aspd_nw<- air_speed[(idx+1):(2*idx)]
+  rm(air_speed)
+  
+  aspd_metrics_wm<- lapply(c(1:idx), FUN=function(x){
+    aspd_min<- min(aspd_wm[[x]])
+    aspd_max<- max(aspd_wm[[x]])
+    aspd_mean<- mean(aspd_wm[[x]])
+    aspd_median<- median(aspd_wm[[x]])
+    aspd_dta<- cbind(aspd_min, aspd_max, aspd_mean, aspd_median)  
+  })
+  
+  aspd_metrics_nw<- lapply(c(1:idx), FUN=function(x){
+    aspd_min<- min(aspd_nw[[x]])
+    aspd_max<- max(aspd_nw[[x]])
+    aspd_mean<- mean(aspd_nw[[x]])
+    aspd_median<- median(aspd_nw[[x]])
+    aspd_dta<- cbind(aspd_min, aspd_max, aspd_mean, aspd_median)  
+  })
   rm(WI_dta)
   
   if(writeVar==T){
     lapply(c(1:idx), FUN=function(x){
-      dta<- rbind(wspd_metrics_wm[[x]],wspd_metrics_nw[[x]],wsup_metrics_wm[[x]],wsup_metrics_nw[[x]],wcom_metrics_wm[[x]],wcom_metrics_nw[[x]])
+      dta<- rbind(wspd_metrics_wm[[x]],wspd_metrics_nw[[x]],wsup_metrics_wm[[x]],wsup_metrics_nw[[x]],wcom_metrics_wm[[x]],wcom_metrics_nw[[x]],aspd_metrics_wm[[x]], aspd_metrics_nw[[x]])
       
       write.csv(dta,file = paste0(results_path,ID_list[x],"_WindAnalysis.csv"), row.names = F)
       })
@@ -784,7 +824,9 @@ wind_analyser<- function(ID_list,writeVar = T,results_path){
               wind_support_metrics_wm=wsup_metrics_wm,
               wind_support_metrics_nw=wsup_metrics_nw,
               wind_compensation_metrics_wm=wcom_metrics_wm,
-              wind_compensation_metrics_wm=wcom_metrics_wm
+              wind_compensation_metrics_nw=wcom_metrics_nw,
+              air_speed_metrics_wm=aspd_metrics_wm,
+              air_speed_metrics_nw=aspd_metrics_nw
               ))
 }
 
@@ -796,12 +838,9 @@ wind_plotter<- function(ID_list, result_storage_path){
   wspd<- get_wind_spd(idx, WI_dta)
   wsup<- get_wind_sup(idx, WI_dta)
   wcom<- get_wind_com(idx, WI_dta)
+  aspd<- get_air_spd(idx,WI_dta)
   rm(BI_dta)
   rm(WI_dta)
-  
-  airspd_wm<- lapply(c(1:idx), FUN=function(x){
-    (gspd[[x]][-length(gspd[[x]])]-wsup[[x]])/3.6
-  })
   
   lapply(c(1:idx), FUN=function(x){
     yl<- c(min(c(min(wspd[[x]]), min(wsup[[x]]), min(wcom[[x]])))/2, max(c(max(wspd[[x]]), max(wsup[[x]]), max(wcom[[x]])))/2)
@@ -816,13 +855,13 @@ wind_plotter<- function(ID_list, result_storage_path){
       legend("topright", legend = c("Wind speed", "Wind support", "Wind compensation"), cex=0.8, lwd=c(1,2,1),col = c("green","blue","orange"), title = "Wind data")
     dev.off()
     
-    result_path<-paste0(result_path,ID_list[x],"SpdPlot.png")
+    result_path<-paste0(result_storage_path,ID_list[x],"SpdPlot.png")
     gspd<- gspd[[x]][-length(gspd[[x]])]
-    yl<- c(min(c(min(gspd/3.6), min(airspd_wm[[x]]/3.6))), max(c(max(gspd/3.6), max(airspd_wm[[x]]/3.6))))
+    yl<- c(min(c(min(gspd/3.6), min(aspd[[x]]/3.6))), max(c(max(gspd/3.6), max(aspd[[x]]/3.6))))
     
     png(filename = result_path,width = 700,height = 500,units = "px")
     plot(gspd/3.6, type="l", col="green", ylim=yl, xlab="Position index", ylab="Speed [m/s]", main=paste0("Bird speeds on route", ID_list[x]))
-    lines(airspd_wm[[x]]/3.6, col="blue")
+    lines(aspd[[x]]/3.6, col="blue")
     legend("topleft", legend = c("Ground speed", "Air speed"), cex=0.8, lwd=c(1,1), col=c("green","blue"), title = "Speeds")
     dev.off()
     })
