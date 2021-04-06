@@ -487,8 +487,8 @@ db_setup<- function(){
 con<- db_setup()
 
 #Where is data stored
-folderName<- "16BZ_20170809"
-birdName<- "16BZ"
+folderName<- "16BG_20170612"
+birdName<- "16BG"
 Data <- paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/data/",folderName)
 # list all light files
 ID.list<-list.files(paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/data/", folderName),pattern=".glf",recursive = T) # Change to gle or glf - the one you use for analyses
@@ -560,7 +560,7 @@ lightImage( tagdata = raw,
 tsimageDeploymentLines(twl$Twilight, lon.calib, lat.calib, offset, lwd = 2, col = "orange")
 
 
-tm.calib <- as.POSIXct(c("2016-07-16 00:00", "2016-07-30 00:00", "2017-04-01 00:00", "2017-04-25 00:00"), tz = "UTC",format="%Y-%m-%d %H:%M") # Selecting calibration period(s) 
+tm.calib <- as.POSIXct(c("2016-07-16 00:00", "2016-08-10 00:00", "2017-04-15 00:00", "2017-04-28 00:00"), tz = "UTC",format="%Y-%m-%d %H:%M") # Selecting calibration period(s) 
 abline(v = tm.calib, lwd = 2, lty = 2, col = "red") # chech if them make sense on the light graph
 
 d_calib <- subset(twl, Twilight>=tm.calib[1] & Twilight<=tm.calib[2] | Twilight>=tm.calib[3] & Twilight<=tm.calib[4])
@@ -598,7 +598,7 @@ library(dplyr)
 ID.list = list.files(paste0("~/MSC_Thesis/R_stuff/Msc_Thesis/data/",folderName,"/"),include.dirs=T)
 ID.list
 #Set idx at position where GLF file is found in the id list --> you want to read the glf file
-ID = ID.list[5]
+ID = ID.list[3]
 ID
 
 pathname = paste0("~/MSC_Thesis/R_stuff/Msc_Thesis/data/",folderName,"/")
@@ -606,7 +606,7 @@ pathname = paste0("~/MSC_Thesis/R_stuff/Msc_Thesis/data/",folderName,"/")
 measurements = c(".pressure", 
                  ".glf",
                  ".acceleration", 
-                 ".AirTemperature")
+                 ".temperature")
 
 PAM_data = importPAM(pathname, measurements)
 
@@ -625,7 +625,7 @@ tz<- "UTC"
 ID.list2 = list.files(Activity_path,pattern="_act",include.dirs=T) # this is the PAMLr output file of flight classification
 ID.list2
 #Select the corect twl file
-ID2 = ID.list2[11]
+ID2 = ID.list2[9]
 ID2
 
 timetable <- read.csv(paste0(Activity_path,ID2))
@@ -779,7 +779,7 @@ sitenum[stationary==F] <- 0
 
 
 # Here starts the normal SGAT analyses
-tol=0.12 #adjust to a larger value to extrapolate more during the equinoq times
+tol=0.18 #adjust to a larger value to extrapolate more during the equinoq times
 
 # This will draw your initial track - play around with the tol value to find something that looks ok-ish.
 path <- thresholdPath(twl$Twilight, twl$Rise, zenith = zenith, tol=tol) # Here I use the zenith value from in-habitas calibration, alternatively replace zenith with zenith_sd for Hill-ekstrom calibration
@@ -1051,24 +1051,12 @@ sm_updater<- function(x,z,track){
   logp_inference<- logp_position+logp_behaviour
   
   
-  #HArmonic mean
-  #'Formula:
-  #'1/(1/n*sum(1->n) (1/likelihood))
-  #'Here we have to remove the fixed locations because they have al log probability of 0
   
-  logp_position_4hm<- logp_position[logp_position != 0]
-  hm_positions<- 1/((1/length(logp_position_4hm))*sum(1/logp_position_4hm))
+  #Arithmetic mean after Pajor (2017)
+  prior<- 1 #given by landmask, the position likelihood remans as it is.
+  cam<- log((prior/logp_inference)*(1/5000)*logp_inference)
   
-  logp_behaviour_4hm<- logp_behaviour[logp_behaviour != 0]
-  hm_behaviour<- 1/((1/length(logp_behaviour_4hm))*sum(1/logp_behaviour_4hm))
-  
-  logp_inference_4hm<- logp_inference[logp_inference != 0]
-  hm_inference<- 1/((1/length(logp_inference_4hm))*sum(1/logp_inference_4hm))
-  
-  
-  sm<- cbind(sm,hm_positions)
-  sm<- cbind(sm,hm_behaviour)
-  sm<- cbind(sm,hm_inference)
+  sm<- cbind(sm,cam_inference)
   
   ## Visualization of results and data
   
