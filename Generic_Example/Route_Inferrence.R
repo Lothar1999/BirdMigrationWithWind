@@ -475,16 +475,16 @@ wind_model <- function(x, z, dt, sigma_bird_speed=3.5) {
 #Where is data stored
 folderName<- "16BG_20170612"
 birdName<- "16BG"
-Data <- paste0("Enter path here",folderName)
+Data <- paste0("P:/home/Documents/MSC_Thesis/",folderName)
 # list all light files
-ID.list<-list.files(paste0("Enter path here", folderName),pattern=".glf",recursive = T) # Change to gle or glf - the one you use for analyses
+ID.list<-list.files(paste0("P:/home/Documents/MSC_Thesis/", folderName),pattern=".glf",recursive = T) # Change to gle or glf - the one you use for analyses
 ID <- ID.list[1]
 ID
 
-glf_file<- paste0("Enter path here",folderName, "/", folderName, ".glf")
-twl_CSVfile<- paste0("TWL file",folderName,"/", folderName,"_twl.csv")
-PAM_filepath<- paste0("TWL file",folderName,"/")
-Activity_path<- "path to activity data"
+glf_file<- paste0("P:/home/Documents/MSC_Thesis/",folderName, "/", folderName, ".glf")
+twl_CSVfile<- paste0("P:/home/Documents/MSC_Thesis/",folderName,"_twl.csv")
+PAM_filepath<- paste0("P:/home/Documents/MSC_Thesis/",folderName,"/")
+Activity_path<- "P:/home/Documents/MSC_Thesis/"
 
 
 
@@ -499,9 +499,9 @@ end = as.POSIXct("2016-06-30","%Y-%m-%d", tz="UTC")
 
 #Parameter for result storage
 Route_name<- 'WM'
-Storage_path_route<-paste0('Storage Path',birdName,'/VoWa/Route_', Route_name,'.png')
-LatAndLonPlot_Path<- paste0('Storage path',birdName,'/VoWa/LatLon_', Route_name,'.png')
-Summaryfile_Path<- paste0("Storage path",birdName,"/VoWa/",birdName,"_sumary_", Route_name,".csv")
+Storage_path_route<-paste0('P:/home/Documents/MSC_Thesis/',birdName,'/VoWa/Route_', Route_name,'.png')
+LatAndLonPlot_Path<- paste0('P:/home/Documents/MSC_Thesis/',birdName,'/VoWa/LatLon_', Route_name,'.png')
+Summaryfile_Path<- paste0("P:/home/Documents/MSC_Thesis/",birdName,"/VoWa/",birdName,"_sumary_", Route_name,".csv")
 
 
 ################ Data preparation ###################
@@ -581,13 +581,13 @@ library(PAMLr)
 library(dplyr)
 
 # PAM Data import
-ID.list = list.files(paste0("PAM data path",folderName,"/"),include.dirs=T)
+ID.list = list.files(paste0("P:/home/Documents/MSC_Thesis/",folderName,"/"),include.dirs=T)
 ID.list
 #Set idx at position where GLF file is found in the id list --> you want to read the glf file
 ID = ID.list[3]
 ID
 
-pathname = paste0("PAM data path",folderName,"/")
+pathname = paste0("P:/home/Documents/MSC_Thesis/",folderName,"/")
 #Make sure all file names are correct
 measurements = c(".pressure", 
                  ".glf",
@@ -611,7 +611,7 @@ tz<- "UTC"
 ID.list2 = list.files(Activity_path,pattern="_act",include.dirs=T) # this is the PAMLr output file of flight classification
 ID.list2
 #Select the corect twl file
-ID2 = ID.list2[9]
+ID2 = ID.list2[1]
 ID2
 
 timetable <- read.csv(paste0(Activity_path,ID2))
@@ -820,7 +820,7 @@ MigTimeTable<- cbind(Mig_start, Mig_end)
 
 #### Wind model initialization
 
-tm<- 
+tm<- read.csv(file="P:/home/Documents/MSC_Thesis/tm_16BG_DB.csv", row.names =NULL, check.names=FALSE)
 
 alt<- altFinder(tm)
 
