@@ -820,7 +820,11 @@ MigTimeTable<- cbind(Mig_start, Mig_end)
 
 #### Wind model initialization
 
-tm<- read.csv(file="P:/home/Documents/MSC_Thesis/tm_16BG_DB.csv", row.names =NULL, check.names=FALSE)
+tm_dta<- read.csv(file="P:/home/Documents/MSC_Thesis/tm_16BG_DB.csv", row.names =NULL, check.names=FALSE)
+tm<-list()
+for (i in c(1:length(tm_dta[,1]))){
+  tm<- append(tm, list(tm_dta[i,1]),after = length(tm))
+}
 
 alt<- altFinder(tm)
 
