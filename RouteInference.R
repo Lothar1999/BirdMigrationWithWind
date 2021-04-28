@@ -487,8 +487,8 @@ db_setup<- function(){
 con<- db_setup()
 
 #Where is data stored
-folderName<- "16BG_20170612"
-birdName<- "16BG"
+folderName<- "16CD_20170612"
+birdName<- "16CD"
 Data <- paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/data/",folderName)
 # list all light files
 ID.list<-list.files(paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/data/", folderName),pattern=".glf",recursive = T) # Change to gle or glf - the one you use for analyses
@@ -560,7 +560,7 @@ lightImage( tagdata = raw,
 tsimageDeploymentLines(twl$Twilight, lon.calib, lat.calib, offset, lwd = 2, col = "orange")
 
 
-tm.calib <- as.POSIXct(c("2016-07-16 00:00", "2016-08-10 00:00", "2017-04-15 00:00", "2017-04-28 00:00"), tz = "UTC",format="%Y-%m-%d %H:%M") # Selecting calibration period(s) 
+tm.calib <- as.POSIXct(c("2016-07-19 00:00", "2016-08-20 00:00", "2017-03-30 00:00", "2017-04-10 00:00"), tz = "UTC",format="%Y-%m-%d %H:%M") # Selecting calibration period(s) 
 abline(v = tm.calib, lwd = 2, lty = 2, col = "red") # chech if them make sense on the light graph
 
 d_calib <- subset(twl, Twilight>=tm.calib[1] & Twilight<=tm.calib[2] | Twilight>=tm.calib[3] & Twilight<=tm.calib[4])
@@ -598,7 +598,7 @@ library(dplyr)
 ID.list = list.files(paste0("~/MSC_Thesis/R_stuff/Msc_Thesis/data/",folderName,"/"),include.dirs=T)
 ID.list
 #Set idx at position where GLF file is found in the id list --> you want to read the glf file
-ID = ID.list[3]
+ID = ID.list[5]
 ID
 
 pathname = paste0("~/MSC_Thesis/R_stuff/Msc_Thesis/data/",folderName,"/")
@@ -606,7 +606,7 @@ pathname = paste0("~/MSC_Thesis/R_stuff/Msc_Thesis/data/",folderName,"/")
 measurements = c(".pressure", 
                  ".glf",
                  ".acceleration", 
-                 ".temperature")
+                 ".AirTemperature")
 
 PAM_data = importPAM(pathname, measurements)
 
@@ -625,7 +625,7 @@ tz<- "UTC"
 ID.list2 = list.files(Activity_path,pattern="_act",include.dirs=T) # this is the PAMLr output file of flight classification
 ID.list2
 #Select the corect twl file
-ID2 = ID.list2[9]
+ID2 = ID.list2[14]
 ID2
 
 timetable <- read.csv(paste0(Activity_path,ID2))
@@ -779,7 +779,7 @@ sitenum[stationary==F] <- 0
 
 
 # Here starts the normal SGAT analyses
-tol=0.18 #adjust to a larger value to extrapolate more during the equinoq times
+tol=0.13 #adjust to a larger value to extrapolate more during the equinoq times
 
 # This will draw your initial track - play around with the tol value to find something that looks ok-ish.
 path <- thresholdPath(twl$Twilight, twl$Rise, zenith = zenith, tol=tol) # Here I use the zenith value from in-habitas calibration, alternatively replace zenith with zenith_sd for Hill-ekstrom calibration
@@ -794,7 +794,7 @@ box()
 x0 <- cbind(tapply(path$x[,1],twl$group,median), 
             tapply(path$x[,2],twl$group,median))
 
-beta  <- c(4, 0.1) # c(2.2, 0.03)
+beta  <- c(180, 4.5) # c(2.2, 0.03)
 matplot(0:150, dgamma(0:150, beta[1], beta[2]),
         type = "l", col = "orange",lty = 1,lwd = 2,ylab = "Density", xlab = "km/h")
 # Define known locations and set them as fixed locations. Ficed locations are not changed in BI
@@ -1054,7 +1054,7 @@ sm_updater<- function(x,z,track){
   
   #Arithmetic mean after Pajor (2017)
   prior<- 1 #given by landmask, the position likelihood remans as it is.
-  cam<- log((prior/logp_inference)*(1/5000)*logp_inference)
+  cam_inference<- log((prior/logp_inference)*(1/5000)*logp_inference)
   
   sm<- cbind(sm,cam_inference)
   
@@ -1087,11 +1087,6 @@ write.csv(sm, Summaryfile_Path, row.names = F)
 x<- cbind(sm$Lat.mean,sm$Lon.mean)
 z<- trackMidpts(x)
 
-
-
-#Start wind data readout here:
-birdName<- "16BZ"
-Route_name<- "NW"
 
 
 WindData_Path<- paste0("P:/home/Documents/MSC_Thesis/Route_Inferrence/Results/",birdName,"/VoWa/",birdName, "_",Route_name,"_windDTA.csv")
