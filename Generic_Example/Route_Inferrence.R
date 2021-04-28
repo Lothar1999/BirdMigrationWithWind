@@ -780,7 +780,7 @@ box()
 x0 <- cbind(tapply(path$x[,1],twl$group,median), 
             tapply(path$x[,2],twl$group,median))
 
-beta  <- c(4, 0.1) # c(2.2, 0.03)
+beta  <- c(180, 4.5) # c(2.2, 0.03)
 matplot(0:150, dgamma(0:150, beta[1], beta[2]),
         type = "l", col = "orange",lty = 1,lwd = 2,ylab = "Density", xlab = "km/h")
 # Define known locations and set them as fixed locations. Ficed locations are not changed in BI
